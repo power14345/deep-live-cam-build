@@ -111,7 +111,6 @@ jobs:
           ArchitecturesInstallIn64BitMode=x64compatible
           UninstallDisplayIcon={app}\\deep-live-cam.exe
           SetupIconFile=media\\dlc.ico
-          SignTool=None
 
           [Languages]
           Name: "english"; MessagesFile: "compiler:Default.isl"
