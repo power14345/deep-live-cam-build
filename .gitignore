@@ -1,0 +1,6 @@
+models/
+media/
+__pycache__/
+*.pyc
+switch_states.json
+workflow/

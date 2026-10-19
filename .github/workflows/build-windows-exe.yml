@@ -1,0 +1,52 @@
+name: build-windows-exe
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install numpy">=2.0,<3" opencv-python==4.14.0.94 pillow==12.3.0 tqdm "psutil==7.2.2" cv2_enumerate_cameras==1.3.3 typing-extensions
+          pip install onnx==1.22.0 "onnxruntime-gpu==1.26.0" insightface==0.7.3 opennsfw2==0.18.0 "keras>=3.0.0" "protobuf>=6.33.5,<8"
+          pip install "PySide6>=6.7,<7" pygrabber pyvirtualcam pyinstaller
+
+      - name: Build one-file exe
+        shell: bash
+        env:
+          PYTHONPATH: ""
+        run: |
+          pyinstaller --noconfirm --clean \
+            --name deep-live-cam \
+            --paths src \
+            --add-data "src/locales;locales" \
+            --add-data "src/modules/ui.json;modules" \
+            --hidden-import pyvirtualcam \
+            --hidden-import pyvirtualcam_native_windows_dshow \
+            --hidden-import insightface \
+            --hidden-import opennsfw2 \
+            --hidden-import keras \
+            --hidden-import cv2_enumerate_cameras \
+            --hidden-import psutil \
+            --exclude-module tkinter \
+            --exclude-module torch \
+            --exclude-module tensorflow \
+            --exclude-module jax \
+            src/run.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-live-cam-windows
+          path: dist/deep-live-cam.exe
