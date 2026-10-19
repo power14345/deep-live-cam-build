@@ -1,0 +1,41 @@
+name: publish-installer-release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download installer artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sL --fail --retry 3 -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/12219798021/zip" \
+            -o artifact.zip
+          ls -la artifact.zip
+          unzip -j -o artifact.zip -d .
+          ls -la
+
+      - name: Create release and upload installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v2.7.5-installer \
+            --repo "${{ github.repository }}" \
+            --title "Deep-Live-Cam 2.7.5 Ultimate Open Edition — Windows Installer" \
+            --notes "Windows 安裝包（Inno Setup）。內建模型（inswapper_128 + buffalo_l 全套）與 ffmpeg，裝完即用不需連網下載。含 VC++ 執行庫自動安裝。原始碼（AGPL-3.0）: 本 repo main 分支。" \
+            || echo "release exists"
+          gh release upload v2.7.5-installer \
+            Deep-Live-Cam-2.7.5-Ultimate-Setup.exe --clobber \
+            --repo "${{ github.repository }}"
+
+      - name: Verify asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v2.7.5-installer --repo "${{ github.repository }}" --json assets --jq '.assets[] | {name, size}'
