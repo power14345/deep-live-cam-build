@@ -27,7 +27,7 @@ jobs:
         env:
           PYTHONPATH: ""
         run: |
-          pyinstaller --noconfirm --clean \
+          pyinstaller --noconfirm --clean --onefile \
             --name deep-live-cam \
             --paths . \
             --add-data "locales;locales" \
