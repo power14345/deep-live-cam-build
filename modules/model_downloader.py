@@ -1,5 +1,6 @@
 import os
 import platform
+import shutil
 import ssl
 import threading
 import urllib.error
@@ -165,6 +166,32 @@ def ensure_insightface_pack(name: str = "buffalo_l") -> bool:
         return False
 
     dest_dir = os.path.join(os.path.expanduser("~"), ".insightface", "models", name)
+
+    # Frozen installs ship the pack inside <exe>/models/buffalo_l/ — prefill
+    # insightface's model dir from it so no network download is needed.
+    if getattr(sys, "frozen", False):
+        from modules.paths import APP_DIR
+
+        bundled = os.path.join(APP_DIR, "models", name)
+        if os.path.isdir(bundled):
+            missing = [
+                m for m in members
+                if not is_present(m, dest_dir) and is_present(m, bundled)
+            ]
+            if missing:
+                try:
+                    os.makedirs(dest_dir, exist_ok=True)
+                    for m in missing:
+                        shutil.copy2(
+                            local_path(m, bundled),
+                            local_path(m, dest_dir),
+                        )
+                    print(f"[DLC.MODELS] prefilled '{name}' from bundled models.")
+                except OSError as exc:
+                    print(f"[DLC.MODELS] bundled prefill failed: {exc}")
+        if all(is_present(member, dest_dir) for member in members):
+            return True
+
     if all(is_present(member, dest_dir) for member in members):
         return True
 

@@ -7,6 +7,14 @@ import sys
 project_root = os.path.dirname(os.path.abspath(__file__))
 os.environ["PATH"] = project_root + os.pathsep + os.environ.get("PATH", "")
 
+# Frozen (onedir) install: make sure the install root and the bundled ffmpeg
+# directory are on PATH for both extension modules and child processes.
+if getattr(sys, "frozen", False) and sys.platform == "win32":
+    _exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    for _d in (_exe_dir, os.path.join(_exe_dir, "ffmpeg")):
+        if os.path.isdir(_d) and _d not in os.environ["PATH"].split(os.pathsep):
+            os.environ["PATH"] = _d + os.pathsep + os.environ["PATH"]
+
 # On Windows, register NVIDIA CUDA DLL directories so onnxruntime-gpu can
 # find cuDNN/cublas. Python 3.8+ ignores PATH for extension-module native deps —
 # os.add_dll_directory() is required. Also keep PATH for child processes/ffmpeg.
@@ -95,5 +103,27 @@ platform_info.print_banner()
 
 from modules import core
 
+
+def _dlc_log_path() -> str:
+    """Crash log lives next to the real executable (frozen) or repo root."""
+    if getattr(sys, "frozen", False):
+        return os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "dlc-crash.log")
+    return os.path.join(project_root, "dlc-crash.log")
+
+
 if __name__ == '__main__':
-    core.run()
+    try:
+        core.run()
+    except SystemExit:
+        raise
+    except BaseException:
+        import datetime
+        import traceback
+
+        try:
+            with open(_dlc_log_path(), "a", encoding="utf-8") as fh:
+                fh.write(f"\n===== {datetime.datetime.now().isoformat()} =====\n")
+                fh.write(traceback.format_exc())
+        except OSError:
+            pass
+        raise
